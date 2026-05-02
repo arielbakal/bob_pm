@@ -1,0 +1,46 @@
+# Nexus-PM Agent Dependencies
+# LangGraph + Gemini API orchestrator for project management
+
+# ===== Core LangGraph & LangChain =====
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+
+# ===== Gemini API (simpler, uses API key) =====
+langchain-google-genai>=2.0.0
+
+# ===== Optional: Vertex AI (requires service account) =====
+# Uncomment if you want to use Vertex AI instead of Gemini API
+# langchain-google-vertexai>=2.0.0
+# google-cloud-aiplatform>=1.60.0
+# google-auth>=2.30.0
+
+# ===== State Persistence =====
+# SqliteSaver for checkpoint persistence
+aiosqlite>=0.20.0
+
+# ===== Retry Logic =====
+tenacity>=8.5.0
+
+# ===== API Integrations =====
+# GitHub API
+PyGithub>=2.3.0
+# Linear GraphQL
+gql>=3.5.0
+requests-toolbelt>=1.0.0
+
+# ===== Utilities =====
+python-dotenv>=1.0.0  # Environment variable management
+pydantic>=2.8.0       # Data validation
+typing-extensions>=4.12.0  # Type hints
+
+# ===== Development & Testing =====
+pytest>=8.3.0
+pytest-asyncio>=0.23.0
+pytest-cov>=5.0.0
+black>=24.4.0         # Code formatting
+ruff>=0.5.0           # Linting
+mypy>=1.11.0          # Type checking
+
+# ===== Logging & Monitoring =====
+structlog>=24.4.0     # Structured logging

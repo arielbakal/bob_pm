@@ -143,7 +143,8 @@ class LinearClient:
         }
         
         if description:
-            variables["input"]["description"] = description
+            # Linear has a 255 character limit for cycle descriptions
+            variables["input"]["description"] = description[:255]
         
         logger.info(f"Creating cycle: {name}")
         result = self.execute_query(mutation, variables)

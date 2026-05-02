@@ -1,16 +1,25 @@
 # Nexus-PM Agent
 
-Strategic AI Orchestrator using LangGraph and Vertex AI to manage complex workflows between business vision, Linear backlog, and GitHub activity.
+Strategic AI Orchestrator using LangGraph and Gemini AI to manage complex workflows between business vision, Linear backlog, and GitHub activity.
 
 ## Overview
 
 Nexus-PM is a LangGraph-based agent that:
-- 🎙️ Ingests strategy from meeting audio using Vertex AI multimodal
+- 🎙️ Ingests strategy from meeting audio using Gemini multimodal
 - 🔍 Analyzes codebase architecture via GitHub (1M token context)
-- 📋 Generates weekly roadmaps with technical acceptance criteria
+- 📋 Generates weekly roadmaps with AI-powered issue extraction
 - ✅ Implements human-in-the-loop approval gates
 - 🎯 Provisions Linear issues and sprint cycles automatically
 - 🔄 Monitors GitHub activity to detect blockers
+
+## ✨ What's New
+
+**Latest Updates:**
+- ✅ **Gemini API Integration** - Simplified authentication with API key (no service account needed)
+- ✅ **End-to-End Workflow** - Complete pipeline from audio to Linear issues
+- ✅ **Roadmap Generation** - AI-powered conversion of meeting summaries to structured roadmaps
+- ✅ **Audio Processing** - Native multimodal support with Gemini 2.5 Flash
+- ✅ **No Warnings** - Clean output with suppressed deprecation warnings
 
 ## Architecture
 
@@ -57,34 +66,51 @@ Nexus-PM is a LangGraph-based agent that:
 
 ## Current Implementation Status
 
-✅ **Phase 1 Complete:**
+✅ **Phase 1 Complete: Core Infrastructure**
 - AgentState TypedDict schema
-- Vertex AI LLM client with retry logic
-- `ingest_strategy` node with multimodal audio processing
+- Gemini API client with retry logic and multimodal support
+- `ingest_strategy` node with native audio processing
 - Project structure and dependencies
 
-✅ **Phase 2 Complete:**
+✅ **Phase 2 Complete: Linear Integration**
 - Linear GraphQL client with retry logic
 - `provision_ops` node for automatic issue/cycle creation
 - Roadmap parsing with acceptance criteria extraction
 - Batch issue creation support
 
-🚧 **Next Steps:**
-- Implement `scan_codebase` node (GitHub analysis)
-- Implement `generate_roadmap` node (AI roadmap generation)
-- Configure human-in-the-loop interrupt
+✅ **Phase 3 Complete: AI Roadmap Generation**
+- `generate_roadmap` node for intelligent issue extraction
+- Automatic priority assignment (HIGH/MEDIUM/LOW)
+- Acceptance criteria generation
+- End-to-end workflow: Audio → Summary → Roadmap → Linear
+
+✅ **Phase 4 Complete: GitHub Integration & StateGraph**
+- `scan_codebase` node for repository analysis
+- GitHub client with file tree extraction
+- Enhanced `generate_roadmap` with technical context
+- Complete LangGraph StateGraph with all nodes
+- Human-in-the-loop approval gate with interrupt
+- State persistence via SqliteSaver checkpointer
+
+🎉 **COMPLETE: Full Workflow Operational**
+- Audio → GitHub Analysis → Roadmap → **[APPROVAL]** → Linear Issues
+- Pause/resume capability for human approval
+- Rejection loop for roadmap regeneration
+- Complete test suite with approval scenarios
+
+🚧 **Optional Future Enhancements:**
 - Implement `monitor_loop` node (cyclic blocker detection)
-- Full LangGraph workflow integration
+- MCP tool integration for advanced features
+- Bob IDE custom mode configuration
 
 ## Installation
 
 ### Prerequisites
 
-1. **Python 3.11+**
-2. **Google Cloud Project** with Vertex AI API enabled
-3. **Service Account** with Vertex AI permissions
-4. **Linear API Key** (for sprint management)
-5. **GitHub Token** (for code analysis)
+1. **Python 3.10+**
+2. **Gemini API Key** from [Google AI Studio](https://makersuite.google.com/app/apikey)
+3. **Linear API Key** (optional - for sprint management)
+4. **GitHub Token** (optional - for code analysis)
 
 ### Setup
 
@@ -108,42 +134,66 @@ pip install -r requirements.txt
 4. **Configure credentials:**
 ```bash
 cp .env.example .env
-# Edit .env with your actual credentials
+# Edit .env and add your Gemini API key
 ```
 
-5. **Set up Google Cloud credentials:**
+Required in `.env`:
 ```bash
-# Download service account key from GCP Console
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
-export GOOGLE_CLOUD_PROJECT=your-project-id
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Optional (for full workflow):
+```bash
+LINEAR_API_KEY=your_linear_api_key_here
+GITHUB_TOKEN=your_github_token_here
 ```
 
 ## Usage
 
-### Test Ingest Strategy Node
+### Quick Start: Complete Workflow Test
 
+**Test the full LangGraph workflow with human-in-the-loop approval:**
+
+```bash
+python examples/test_complete_workflow.py
+```
+
+This complete StateGraph workflow will:
+1. **Ingest Strategy** - Process meeting audio with Gemini
+2. **Scan Codebase** - Analyze GitHub repository structure
+3. **Generate Roadmap** - Create sprint roadmap with technical context
+4. **Human Gate** - **PAUSE for approval** (simulated in test)
+5. **Provision Ops** - Create Linear cycle and issues
+6. Display results
+
+**Total time:** ~30 seconds (includes GitHub API calls)
+
+**Alternative: Simplified End-to-End Test (No GitHub/Approval):**
+
+```bash
+python examples/test_end_to_end.py
+```
+
+This simplified workflow will:
+1. Process meeting audio with Gemini
+2. Extract strategy summary
+3. Generate structured roadmap with AI
+4. Create Linear cycle and issues
+5. Display results
+
+**Total time:** ~15 seconds
+
+### Test Individual Nodes
+
+**Audio Processing:**
 ```bash
 python examples/test_ingest_strategy.py
 ```
 
-This will:
-1. Load a meeting audio file
-2. Process it with Vertex AI multimodal
-3. Extract action items and strategic goals
-4. Display the extracted strategy summary
-
-### Test Linear Provisioning Node
-
+**Linear Provisioning:**
 ```bash
 python examples/test_provision_ops.py
 ```
-
-This will:
-1. Create a sample approved roadmap
-2. Parse roadmap into cycle and issue data
-3. Create sprint cycle in Linear
-4. Create issues with acceptance criteria
-5. Display created Linear IDs
 
 ### Python API
 
@@ -192,16 +242,22 @@ print(f"Issues: {updated_state['linear_issue_ids']}")
 nexus-pm/
 ├── src/
 │   ├── __init__.py
-│   ├── state.py              # AgentState TypedDict schema
-│   ├── llm.py                # Vertex AI client with retry logic
-│   ├── linear_client.py      # Linear GraphQL client
+│   ├── state.py                 # AgentState TypedDict schema
+│   ├── llm.py                   # Gemini API client with retry logic
+│   ├── linear_client.py         # Linear GraphQL client
+│   ├── github_client.py         # GitHub API client (NEW)
+│   ├── graph.py                 # LangGraph StateGraph workflow (NEW)
 │   └── nodes/
 │       ├── __init__.py
-│       ├── ingest_strategy.py  # Meeting audio ingestion node
-│       └── provision_ops.py    # Linear provisioning node
+│       ├── ingest_strategy.py   # Meeting audio ingestion node
+│       ├── scan_codebase.py     # GitHub repository analysis node (NEW)
+│       ├── generate_roadmap.py  # AI roadmap generation node (ENHANCED)
+│       └── provision_ops.py     # Linear provisioning node
 ├── examples/
-│   ├── test_ingest_strategy.py  # Ingest strategy example
-│   └── test_provision_ops.py    # Linear provisioning example
+│   ├── test_ingest_strategy.py     # Audio processing test
+│   ├── test_provision_ops.py       # Linear provisioning test
+│   ├── test_end_to_end.py          # Simplified workflow test
+│   └── test_complete_workflow.py   # Full StateGraph test (NEW)
 ├── .bob/
 │   ├── rules-code/
 │   │   └── AGENTS.md         # Code mode rules
@@ -211,12 +267,13 @@ nexus-pm/
 │   │   └── AGENTS.md         # Ask mode rules
 │   └── rules-plan/
 │       └── AGENTS.md         # Plan mode rules
-├── AGENTS.md                 # Main agent guidance
-├── blueprint.md              # Original design blueprint
-├── stategraph-plan.md        # Detailed implementation plan
-├── requirements.txt          # Python dependencies
-├── .env.example              # Environment variables template
-└── README.md                 # This file
+├── AGENTS.md                    # Main agent guidance
+├── blueprint.md                 # Original design blueprint
+├── stategraph-plan.md           # Detailed implementation plan
+├── IMPLEMENTATION_PLAN.md       # Final implementation plan (NEW)
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Environment variables template
+└── README.md                    # This file
 ```
 
 ## Configuration
@@ -225,11 +282,14 @@ nexus-pm/
 
 See `.env.example` for all configuration options. Key variables:
 
-- `GOOGLE_APPLICATION_CREDENTIALS`: Path to GCP service account key
-- `GOOGLE_CLOUD_PROJECT`: GCP project ID
+**Required:**
+- `GEMINI_API_KEY`: Gemini API key from Google AI Studio
+
+**Optional:**
 - `LINEAR_API_KEY`: Linear API key for sprint management
 - `GITHUB_TOKEN`: GitHub personal access token
 - `MONITOR_INTERVAL_HOURS`: Monitoring loop interval (default: 4)
+- `PYTHONWARNINGS`: Set to `ignore::FutureWarning` to suppress warnings
 
 ### Bob Mode Configuration
 
@@ -252,28 +312,44 @@ modes:
 
 ### 1. Multimodal Audio Processing
 
-Vertex AI processes meeting audio **directly** - no transcription service needed:
+Gemini processes meeting audio **directly** - no transcription service needed:
 
 ```python
-vertex_client = get_vertex_client()
-strategy = vertex_client.process_audio(
+from src.llm import get_gemini_client
+
+gemini_client = get_gemini_client()
+strategy = gemini_client.process_audio(
     audio_path="meeting.mp3",
     task_prompt="Extract action items and technical decisions"
 )
 ```
 
-### 2. 1-Million Token Context
+### 2. AI-Powered Roadmap Generation
 
-Gemini 1.5 Pro handles entire codebases in a single call:
+Convert meeting summaries to structured roadmaps automatically:
 
 ```python
-insights = vertex_client.analyze_codebase(
+from src.nodes import generate_roadmap_from_summary
+
+roadmap = generate_roadmap_from_summary(
+    strategy_summary="Build analytics feature...",
+    cycle_name="Sprint 2026-W18"
+)
+# Returns formatted markdown with issues, priorities, and acceptance criteria
+```
+
+### 3. 1-Million Token Context
+
+Gemini 2.5 Flash handles entire codebases in a single call:
+
+```python
+insights = gemini_client.analyze_codebase(
     codebase_context=full_repo_content,  # Up to 1M tokens
     analysis_prompt="Identify architectural patterns"
 )
 ```
 
-### 3. Linear GraphQL Integration
+### 4. Linear GraphQL Integration
 
 Direct GraphQL operations with automatic retry:
 
@@ -301,7 +377,7 @@ issues = linear.batch_create_issues(
 )
 ```
 
-### 4. Roadmap Parsing
+### 5. Roadmap Parsing
 
 Automatic extraction of issues from markdown:
 
@@ -312,7 +388,7 @@ cycle_data, issues_data = parse_roadmap(roadmap_markdown)
 # Returns structured data ready for Linear provisioning
 ```
 
-### 5. Human-in-the-Loop Approval
+### 6. Human-in-the-Loop Approval
 
 Workflow pauses for approval using LangGraph interrupts:
 
@@ -323,7 +399,7 @@ workflow = graph.compile(
 )
 ```
 
-### 6. State Persistence
+### 7. State Persistence
 
 SqliteSaver enables pause/resume across sessions:
 
@@ -396,5 +472,36 @@ meeting_audio_path="examples/sample_meeting.mp3"  # Must exist
 
 - [Blueprint](blueprint.md) - Original design document
 - [Implementation Plan](stategraph-plan.md) - Detailed technical plan
+- [Quick Start Guide](QUICKSTART.md) - 5-minute setup guide
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [Vertex AI Documentation](https://cloud.google.com/vertex-ai/docs)
+- [Gemini API Documentation](https://ai.google.dev/docs)
+- [Linear API Documentation](https://developers.linear.app/)
+
+## Recent Changes
+
+**v0.4.0 (Current) - Complete LangGraph Implementation**
+- ✅ **GitHub Integration** - Repository analysis with file tree extraction
+- ✅ **Complete StateGraph** - Full LangGraph workflow with all nodes
+- ✅ **Human-in-the-Loop** - Approval gate with interrupt and state persistence
+- ✅ **Enhanced Roadmap** - Technical context from GitHub incorporated
+- ✅ **Pause/Resume** - SqliteSaver checkpointer for workflow resumption
+- ✅ **Rejection Loop** - Roadmap regeneration with feedback
+- ✅ **Complete Tests** - Full workflow validation with approval scenarios
+
+**v0.3.0**
+- ✅ Complete end-to-end workflow implementation
+- ✅ Gemini API integration with simple API key auth
+- ✅ AI-powered roadmap generation from meeting summaries
+- ✅ Native audio processing with Gemini 2.5 Flash
+- ✅ Automatic priority assignment and acceptance criteria
+- ✅ Clean output with warning suppression
+
+**v0.2.0**
+- ✅ Linear GraphQL integration
+- ✅ Automatic issue and cycle provisioning
+- ✅ Roadmap parsing with acceptance criteria
+
+**v0.1.0**
+- ✅ Initial project structure
+- ✅ AgentState schema
+- ✅ Audio ingestion node

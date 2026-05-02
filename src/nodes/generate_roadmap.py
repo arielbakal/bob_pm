@@ -198,12 +198,18 @@ def validate_roadmap_format(roadmap: str) -> dict:
 
 def generate_roadmap(state: AgentState) -> AgentState:
     """
-    Node: Generate roadmap from strategy summary.
+    Node: Generate roadmap from strategy summary WITH GitHub context.
+    
+    Enhanced to incorporate:
+    - Technical constraints from codebase analysis
+    - Architectural patterns
+    - Existing tech stack
     
     This node:
     1. Takes strategy_summary from state
-    2. Uses Gemini to convert to structured roadmap
-    3. Updates state with roadmap markdown
+    2. Optionally incorporates codebase_insights from GitHub analysis
+    3. Uses Gemini to convert to structured roadmap
+    4. Updates state with roadmap markdown
     
     Args:
         state: Current AgentState with strategy_summary populated
@@ -215,7 +221,7 @@ def generate_roadmap(state: AgentState) -> AgentState:
         ValueError: If strategy_summary is not in state
         Exception: If roadmap generation fails
     """
-    logger.info("Starting roadmap generation node")
+    logger.info("Starting enhanced roadmap generation with GitHub context")
     
     # Validate input
     strategy_summary = state.get("strategy_summary")
@@ -224,24 +230,115 @@ def generate_roadmap(state: AgentState) -> AgentState:
             "strategy_summary must be provided in state for generate_roadmap node"
         )
     
-    logger.info(f"Generating roadmap from summary ({len(strategy_summary)} chars)")
+    # Get GitHub context (optional - may not be available)
+    codebase_insights = state.get("codebase_insights", "")
+    github_context = state.get("github_context", {})
+    
+    has_github_context = bool(codebase_insights and codebase_insights != "Codebase analysis unavailable - proceeding without GitHub context")
+    
+    if has_github_context:
+        logger.info(f"Generating roadmap with GitHub context ({len(codebase_insights)} chars)")
+    else:
+        logger.info("Generating roadmap without GitHub context")
+    
+    # Build enhanced prompt with GitHub context
+    context_section = ""
+    if has_github_context:
+        context_section = f"""
+
+## Technical Context from Codebase Analysis
+
+{codebase_insights}
+
+**Important:** Ensure all proposed issues align with the existing architecture and tech stack."""
+    
+    # Get Gemini client
+    gemini_client = get_gemini_client(
+        model_name="gemini-2.5-flash",
+        temperature=0.3,
+        max_output_tokens=4096
+    )
+    
+    # Calculate cycle dates
+    today = datetime.now()
+    next_monday = today + timedelta(days=(7 - today.weekday()))
+    cycle_end = next_monday + timedelta(days=6)
+    cycle_name = f"Sprint {next_monday.strftime('%Y-W%U')}"
+    cycle_dates = f"{next_monday.strftime('%b %d')}-{cycle_end.strftime('%d')}"
+    
+    # Enhanced system prompt
+    system_prompt = """You are an expert engineering project manager who converts meeting notes into actionable sprint roadmaps.
+
+You have access to technical context about the codebase. Use this to:
+- Ensure proposed work aligns with existing architecture
+- Identify technical dependencies
+- Flag potential conflicts with current tech stack
+- Suggest implementation approaches that fit the codebase"""
+    
+    # Enhanced task prompt
+    task_prompt = f"""Convert this meeting summary into a technically-informed sprint roadmap:
+
+## MEETING SUMMARY
+{strategy_summary}
+{context_section}
+
+Generate a roadmap with this EXACT format:
+
+# {cycle_name} ({cycle_dates})
+
+## Goals
+- [Extract 3-5 high-level goals aligned with technical constraints]
+
+## Issues
+
+### [PRIORITY] Issue Title
+**Priority:** High/Medium/Low
+
+[Description that considers existing architecture and tech stack]
+
+**Technical Notes:**
+- [Any architectural considerations]
+- [Dependencies on existing components]
+
+**Acceptance Criteria:**
+- [ ] Specific, measurable criterion 1
+- [ ] Specific, measurable criterion 2
+- [ ] Specific, measurable criterion 3
+
+IMPORTANT RULES:
+1. Consider technical constraints from codebase analysis
+2. Align issues with existing architecture patterns
+3. Flag any potential technical conflicts
+4. Include technical notes for complex issues
+5. Use realistic priorities based on technical complexity
+6. Ensure acceptance criteria are technically feasible
+
+Generate the roadmap now:"""
     
     try:
-        # Generate roadmap
-        roadmap = generate_roadmap_from_summary(strategy_summary)
+        # Generate enhanced roadmap
+        roadmap = gemini_client.invoke(
+            prompt=task_prompt,
+            system_prompt=system_prompt
+        )
         
-        logger.info("Successfully generated roadmap")
-        logger.debug(f"Roadmap length: {len(roadmap)} characters")
+        logger.info(f"Generated enhanced roadmap: {len(roadmap)} characters")
+        
+        # Validate format
+        validation = validate_roadmap_format(roadmap)
+        if not validation["valid"]:
+            logger.warning(f"Roadmap validation issues: {validation['issues']}")
         
         # Update state with roadmap
         # Note: approval_status remains "pending" until human approval
         return update_state(
             state,
-            roadmap=roadmap
+            roadmap=roadmap,
+            roadmap_version=state.get("roadmap_version", 0) + 1
         )
         
     except Exception as e:
-        logger.error(f"Roadmap generation failed: {e}")
+        logger.error(f"Enhanced roadmap generation failed: {e}")
         raise Exception(f"Failed to generate roadmap: {e}")
 
 

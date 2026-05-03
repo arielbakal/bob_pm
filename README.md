@@ -464,10 +464,6 @@ meeting_audio_path="examples/sample_meeting.mp3"  # Must exist
 4. Use retry logic for all external API calls
 5. Add tests for new nodes
 
-## License
-
-[Your License Here]
-
 ## References
 
 - [Blueprint](blueprint.md) - Original design document
